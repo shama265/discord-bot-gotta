@@ -7,7 +7,7 @@ class Reminder(commands.Cog):
   def __init__(self, bot):
     self.bot = bot
     self.db = ReminderDb()
-    self.date_delta = timedelta(day=1)
+    self.date_delta = timedelta(days=1)
   
   @commands.command()
   async def rmd(self, ctx, date_string:str, remark:str):
