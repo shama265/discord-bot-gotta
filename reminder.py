@@ -8,6 +8,10 @@ class Reminder(commands.Cog):
     self.bot = bot
     self.db = ReminderDb()
     self.date_delta = timedelta(days=1)
+    self.remind.start()
+  
+  def cog_unload(self):
+    self.remind.cancel()
   
   @commands.command()
   async def rmd(self, ctx, date_string:str, remark:str):
@@ -22,7 +26,7 @@ class Reminder(commands.Cog):
       
       set_date = date(year, month, day)
       print(set_date)
-      self.db.insertEvent(remark, set_date)
+      self.db.insertEvent(remark, set_date, ctx.channel.id)
       await ctx.message.add_reaction('👍')
     except ValueError:
       print(f'Invalid date string: {date_string}')
@@ -32,11 +36,18 @@ class Reminder(commands.Cog):
       print(sys.exc_info()[2])
       await ctx.message.add_reaction('😩')
 
+  @tasks.loop(hours=24.0)
   async def remind(self):
-    target_date = date.today() + self.date_delta
-    # fetch events from db
-
-    # remind events started tomorrow
+    '''Remind approaching events'''
+    await self.bot.wait_until_ready()
+    try:
+      target_date = date.today() + self.date_delta
+      events = self.db.selectAllEvents()
+      for e in filter(lambda e: e['event_date'] >= target_date, events):
+        await self.bot.get_channel(e['channel_id']).send(f'Reminder: {e["remark"]} at {e["event_date"]}')
+        self.db.deleteById(e['id'])
+    except Exception as e:
+      print(f'Uncaught exception: {sys.exc_info()[0]}')
 
   def __del__(self):
     self.db.close()
