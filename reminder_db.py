@@ -36,7 +36,7 @@ class ReminderDb:
     '''Delete a event by id'''
     with self.__con as con:
       with con.cursor() as cur:
-        cur.execute('DELETE FROM events WHERE id = ?', (id,))
+        cur.execute('DELETE FROM events WHERE id = %s', (id,))
 
   def __enter__(self):
     return self
