@@ -1,36 +1,42 @@
-import sqlite3
 from datetime import date
-
-db_file = 'gottani.db'
+import psycopg2
+import psycopg2.extras
+from os import environ
 
 class ReminderDb:
   def __init__(self):
-    self.__con = sqlite3.connect(db_file, detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
-    self.__con.row_factory = sqlite3.Row
+    self.__con = psycopg2.connect(environ['DATABASE_URL'])
+    self.__con.cursor_factory = psycopg2.extras.DictCursor
 
     # CREATE TABLE
-    self.__con.execute('''CREATE TABLE IF NOT EXISTS events (
-      id INTEGER PRIMARY KEY,
-      remark TEXT NOT NULL,
-      event_date DATE NOT NULL,
-      channel_id INTEGER NOT NULL
-    )''')
+    with self.__con as con:
+      with con.cursor() as cur:
+        cur.execute('''CREATE TABLE IF NOT EXISTS events (
+          id serial PRIMARY KEY,
+          remark varchar NOT NULL,
+          event_date date NOT NULL,
+          channel_id bigint NOT NULL
+        )''')
 
   def insertEvent(self, remark : str, event_date : date, channel_id : int):
     '''Add a event info'''
     with self.__con as con:
-      return con.execute('INSERT INTO events (remark, event_date, channel_id) values (?, ?, ?)',
-        (remark, event_date.isoformat(), channel_id))
+      with con.cursor() as cur:
+        cur.execute('INSERT INTO events (remark, event_date, channel_id) values (%s, %s, %s)',
+          (remark, event_date.isoformat(), channel_id))
 
   def selectAllEvents(self):
     '''Return events as a list of rows'''
     with self.__con as con:
-      return list(map(dict, con.execute('SELECT id, remark, event_date, channel_id FROM events').fetchall()))
+      with con.cursor() as cur:
+        cur.execute('SELECT id, remark, event_date, channel_id FROM events')
+        return list(map(dict, cur.fetchall()))
 
   def deleteById(self, id : int):
     '''Delete a event by id'''
     with self.__con as con:
-      return con.execute('DELETE FROM events WHERE id = ?', (id,))
+      with con.cursor() as cur:
+        cur.execute('DELETE FROM events WHERE id = ?', (id,))
 
   def __enter__(self):
     return self
