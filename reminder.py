@@ -43,7 +43,7 @@ class Reminder(commands.Cog):
     try:
       target_date = date.today() + self.date_delta
       events = self.db.selectAllEvents()
-      for e in filter(lambda e: e['event_date'] >= target_date, events):
+      for e in filter(lambda e: e['event_date'] <= target_date, events):
         await self.bot.get_channel(e['channel_id']).send(f'Reminder: {e["remark"]} at {e["event_date"]}')
         self.db.deleteById(e['id'])
     except Exception as e:
